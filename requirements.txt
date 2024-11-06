@@ -1,0 +1,7 @@
+Flask
+vercel-python
+sqlalchemy
+flask_sqlalchemy
+flask_login
+pandas
+chardet
