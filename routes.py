@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import or_
 
 
-import chardet
+# import chardet
 
 main = Blueprint('main', __name__)
 
@@ -39,6 +39,8 @@ def register():
         name = request.form.get('name')
         email = request.form.get('email')
         password = generate_password_hash(request.form.get('password'), method='sha256')
+
+
         role = request.form.get('role', ANNOTATOR_ROLE)  # Default to 'Annotator' if no role selected
 
         new_user = User(name=name, email=email, password=password, role=role)
