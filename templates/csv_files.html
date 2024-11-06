@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CSV Files List</title>
+    <style>
+        /* General body styling */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f8ff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: #333;
+        }
+
+        /* Heading styling */
+        h2 {
+            color: #007bff;
+            font-size: 34px;
+            margin-bottom: 20px;
+        }
+
+        /* Flash messages styling */
+        ul {
+            list-style-type: none;
+            padding: 0;
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 1000px;
+        }
+        ul li {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border: 1px solid #f5c6cb;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+
+        /* Table styling */
+        table {
+            width: 100%;
+            max-width: 1000px;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border: 1px solid #ddd;
+            font-size: 30px;
+        }
+        th {
+            background-color: #007bff;
+            color: #fff;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        /* Button styling */
+        button {
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 30px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        /* No CSV files message */
+        p {
+            font-size: 30px;
+            color: #555;
+            margin-top: 15px;
+        }
+
+        /* Link styling for upload (if enabled) */
+        a {
+            color: #007bff;
+            text-decoration: none;
+            margin-top: 15px;
+            display: inline-block;
+            font-size: 30px;
+            transition: color 0.3s ease;
+        }
+
+        a:hover {
+            color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h2>Available CSV Files for Annotation</h2>
+
+    <!-- Flash messages section -->
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <ul>
+                {% for message in messages %}
+                    <li>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Table for listing CSV files -->
+    <table>
+        <tr>
+            <th>Filename</th>
+            <th>Action</th>
+        </tr>
+        {% for csv_file in csv_files %}
+        <tr>
+            <td>{{ csv_file.filename }}</td>
+            <td>
+                <a href="{{ url_for('main.annotate_csv', csv_file_id=csv_file.id) }}">
+                    <button>Annotate</button>
+                </a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% if csv_files|length == 0 %}
+        <p>No CSV files available for annotation.</p>
+    {% endif %}
+    <div class="back-to-home">
+        <a href="{{ url_for('main.home') }}">
+            <button>Back to Home</button>
+        </a>
+    </div>
+    
+    <!-- <a href="{{ url_for('main.upload') }}">Upload New CSV</a> -->
+</body>
+</html>

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Uploaded CSV Files</title>
+    <style>
+        /* General body styling */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9fc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: #333;
+        }
+
+        /* Heading styling */
+        h2 {
+            color: #4a90e2;
+            font-size: 34px;
+            margin-bottom: 20px;
+        }
+
+        /* Table styling */
+        table {
+            width: 80%;
+            max-width: 1000px;
+            border-collapse: collapse;
+            margin-top: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            background-color: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+            font-size: 18px;
+        }
+        th {
+            background-color: #4a90e2;
+            color: #fff;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f3f6fb;
+        }
+        
+        /* Actions column styling */
+        td a {
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-size: 16px;
+            color: #fff;
+            margin-right: 5px;
+            transition: background-color 0.3s ease;
+        }
+        td a:first-child {
+            background-color: #4a90e2;
+        }
+        td a:last-child {
+            background-color: #f5a623;
+        }
+        td a:hover:first-child {
+            background-color: #357abd;
+        }
+        td a:hover:last-child {
+            background-color: #e8971c;
+        }
+
+        /* Message for no files */
+        p {
+            font-size: 20px;
+            color: #888;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Your Uploaded CSV Files</h2>
+
+    <!-- Table for listing uploaded CSV files -->
+    <table>
+        <tr>
+            <th>Filename</th>
+            <th>Actions</th>
+        </tr>
+        {% for csv_file in csv_files %}
+        <tr>
+            <td>{{ csv_file.filename }}</td>
+            <td>
+                <!-- <a href="{{ url_for('main.annotate_csv', csv_file_id=csv_file.id) }}">Annotate</a> -->
+                <a href="{{ url_for('main.track_progress', csv_file_id=csv_file.id) }}">Track Progress</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% if csv_files|length == 0 %}
+        <p>No files uploaded yet.</p>
+    {% endif %}
+</body>
+</html>

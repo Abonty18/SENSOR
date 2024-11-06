@@ -1,0 +1,96 @@
+/* General styling for the entire page */
+body {
+     font-family: Arial, sans-serif;
+     background-color: #f0f4f8;
+     color: #333;
+     margin: 0;
+     padding: 0;
+     display: flex;
+     justify-content: center;
+     align-items: center;
+     height: 100vh;
+ }
+ 
+ /* Container for the main content */
+ .container {
+     max-width: 600px;
+     padding: 40px;
+     background-color: #ffffff;
+     border-radius: 8px;
+     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+     text-align: center;
+ }
+ 
+ /* Header styling */
+ h1 {
+     color: #cc0077;
+     font-size: 2em;
+     margin-bottom: 20px;
+ }
+ 
+ /* Greeting text */
+ .container p {
+     font-size: 1.2em;
+     color: #555;
+     margin-bottom: 20px;
+ }
+ 
+ /* Link styling */
+ a {
+     color: #007acc;
+     text-decoration: none;
+     font-weight: bold;
+     padding: 10px 20px;
+     border-radius: 5px;
+     transition: background-color 0.3s;
+     display: inline-block;
+     margin: 10px 0;
+ }
+ 
+ /* Link hover effect */
+ a:hover {
+     background-color: #e0f3ff;
+ }
+ 
+ /* Button-style links for actions */
+ a.button,
+ button {
+     background-color: #28a745;
+     color: #ffffff;
+     padding: 10px 20px;
+     border: none;
+     border-radius: 5px;
+     cursor: pointer;
+     font-size: 1em;
+     text-decoration: none;
+     margin: 10px 5px;
+     transition: background-color 0.3s;
+ }
+ 
+ /* Button hover effect */
+ a.button:hover,
+ button:hover {
+     background-color: #218838;
+ }
+ 
+ /* Logout button styling */
+ a.logout {
+     background-color: #dc3545;
+     color: #ffffff;
+ }
+ 
+ a.logout:hover {
+     background-color: #c82333;
+ }
+ 
+ /* Styling for 'No files available' message */
+ .no-files {
+     color: #888;
+     font-size: 1.1em;
+     padding: 15px;
+     background-color: #f8f9fa;
+     border: 1px solid #ddd;
+     border-radius: 5px;
+     margin-top: 20px;
+ }
+ 

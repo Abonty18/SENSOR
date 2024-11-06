@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Annotation</title>
+    <style>
+        /* Styling for the layout */
+        body {
+            font-family: "Lato", sans-serif;
+            background-color: #e8f8f8;
+        }
+        .container {
+            display: flex;
+            justify-content: space-between;
+            padding: 20px;
+            margin: 10px;
+        }
+        .guidelines, .reviews {
+            width: 50%;
+            padding: 15px;
+            border-radius: 10px;
+            background-color: #cfe7e7;
+            font-family: "Lato", sans-serif;
+            font-size: 30px;
+            margin: 20px 20px;
+        }
+        h2 {
+            text-align: center;
+        }
+        .guidelines table, .reviews {
+            width: 100%;
+            margin-top: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #999;
+            text-align: left;
+        }
+        .review-text {
+            padding: 15px;
+            border: 1px solid #bbb;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            margin-bottom: 15px;
+        }
+        .buttons {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+        }
+        .buttons button {
+            font-size: 30px; /* Larger font size */
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            background-color: #0066cc;
+            color: white;
+            border: none;
+            margin: 20px;
+        }
+        .buttons button:hover {
+            background-color: #004c99;
+        }
+        .annotation-count {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            font-size: 28px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <h2>Annotation</h2>
+    <div class="container">
+        <!-- Guidelines Section -->
+        <div class="guidelines">
+            <h3>Review Annotation Guidelines</h3>
+            <table>
+                <tr>
+                    <th>Section</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>Objective</td>
+                    <td>The goal of this annotation task is to categorize the reviews based on whether they are related to privacy features, privacy bugs, or neither.</td>
+                </tr>
+                <tr>
+                    <td>Label Categories</td>
+                    <td>
+                        <ul>
+                            <li><strong>Privacy-Related Feature Request</strong>: Assign if the review discusses a feature request related to user privacy.</li>
+                            <li><strong>Privacy-Related Bug</strong>: Assign if the review reports a bug related to user privacy.</li>
+                            <li><strong>Privacy-Related Feature Request+Bug</strong>: Assign if the review discusses both a feature request and a bug related to user privacy.</li>
+                            <li><strong>Not Privacy-Related</strong>: Assign if the review is not discussing any privacy-related aspects.</li>
+                        </ul>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Annotation Instructions</td>
+                    <td>
+                        1. Read the Review.<br>
+                        2. Identify Privacy Context.<br>
+                        3. Assign Appropriate Label.
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Review Section -->
+        <div class="reviews">
+            <h3>Reviews</h3>
+            <div class="review-text">
+                {{ review.text }}
+            </div>
+            <form action="{{ url_for('main.submit_annotation') }}" method="POST">
+                <input type="hidden" name="review_id" value="{{ review.id }}">
+                <input type="hidden" name="csv_file_id" value="{{ csv_file_id }}">
+                <div>
+                    <label><input type="radio" name="annotation" value="Privacy-Related Feature Request" required> Privacy-Related Feature Request</label><br>
+                    <label><input type="radio" name="annotation" value="Privacy-Related Bug"> Privacy-Related Bug</label><br>
+                    <label><input type="radio" name="annotation" value="Privacy-Related Feature Request+Bug"> Privacy-Related Feature Request+Bug</label><br>
+                    <label><input type="radio" name="annotation" value="Not Privacy-Related"> Not Privacy-Related</label>
+                </div>
+                <div class="buttons">
+                    <button type="submit">Next</button>
+                    <button type="button" onclick="redirectToCsvFiles()">Save & Exit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- Annotation count at the bottom right -->
+    <div class="annotation-count">
+        Total Annotations by You in This File: {{ annotation_count }}
+    </div>
+    <script>
+                function redirectToCsvFiles() {
+                    window.location.href = "{{ url_for('main.csv_files') }}";
+                }
+            </script>
+            
+
+
+
+
+
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
