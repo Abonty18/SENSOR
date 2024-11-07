@@ -1,6 +1,0 @@
-# Ignore virtual environments, hidden files, and other unnecessary files
-venv/
-.git/
-__pycache__/
-*.pyc
-*.pyo
