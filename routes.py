@@ -38,7 +38,8 @@ def register():
     if request.method == 'POST':
         name = request.form.get('name')
         email = request.form.get('email')
-        password = generate_password_hash(request.form.get('password'), method='sha256')
+        password = generate_password_hash(request.form.get('password'), method='pbkdf2:sha256')
+
 
 
         role = request.form.get('role', ANNOTATOR_ROLE)  # Default to 'Annotator' if no role selected
