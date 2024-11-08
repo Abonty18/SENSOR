@@ -101,5 +101,10 @@
     {% if csv_files|length == 0 %}
         <p>No files uploaded yet.</p>
     {% endif %}
+    <div class="back-to-home">
+        <a href="{{ url_for('main.home') }}">
+            <button>Back to Home</button>
+        </a>
+    </div>
 </body>
 </html>

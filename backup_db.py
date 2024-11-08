@@ -16,7 +16,9 @@ def backup_db():
     
     if 'sqlite' in db_url:
         db_path = db_url.split("///")[-1]
-        call(["sqlite3", db_path, f".backup {backup_file}"])
+        # Use .dump instead of .backup for SQLite
+        with open(backup_file, 'w') as f:
+            call(["sqlite3", db_path, ".dump"], stdout=f)
     elif 'postgresql' in db_url:
         call(["pg_dump", db_url, "-f", backup_file])
 
