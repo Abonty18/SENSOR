@@ -4,6 +4,7 @@ from config import Config
 from extensions import db, login_manager
 from routes import main
 from flask_migrate import Migrate
+from extensions import init_app
 
 
 

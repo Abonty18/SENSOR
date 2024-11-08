@@ -374,3 +374,5 @@ def track_progress(csv_file_id):
     progress_percentage = (annotated_reviews / total_reviews * 100) if total_reviews > 0 else 0
 
     return render_template('track_progress.html', csv_file=csv_file, progress_percentage=progress_percentage)
+
+

@@ -8,9 +8,8 @@ db = SQLAlchemy()
 login_manager = LoginManager()
 
 def init_app(app: Flask):
-    # Use the DATABASE_URL environment variable provided by Render for configuration
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')  # Set by Render for PostgreSQL
+    # Use DATABASE_URL as configured in Render
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')  # Set by Render
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     db.init_app(app)
-
-#postgres://sensor_odz0_user:BHCLVpLtEYyTuKFgUKLwBpT4oLOiHfrj@dpg-csmtch0gph6c73fpl000-a:5432/sensor_odz0
+    login_manager.init_app(app)
