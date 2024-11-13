@@ -3,11 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <title>Track Progress</title>
+    <style>
+        /* Body styling */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: #333;
+        }
+
+        /* Container styling */
+        .progress-container {
+            background-color: #ffffff;
+            padding: 20pt;
+            border-radius: 10pt;
+            box-shadow: 0 2pt 4pt rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 80%;
+            max-width: 600pt;
+        }
+
+        /* Heading styling */
+        h2 {
+            font-size: 24pt;
+            margin-bottom: 10pt;
+            color: #333;
+        }
+
+        /* Paragraph styling */
+        p {
+            font-size: 14pt;
+            margin: 8pt 0;
+        }
+
+        /* Link styling */
+        a {
+            display: inline-block;
+            margin-top: 20pt;
+            padding: 10pt 15pt;
+            background-color: #007bff;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 5pt;
+            font-size: 14pt;
+            transition: background-color 0.3s ease;
+        }
+
+        a:hover {
+            background-color: #0056b3;
+        }
+    </style>
 </head>
 <body>
     <h2>Progress for {{ csv_file.filename }}</h2>
-    <p>Total Reviews: {{ progress_percentage }}%</p>
-    <p>Annotated Reviews: {{ progress_percentage }}%</p>
+    <p>Total Reviews: {{ total_reviews }}</p>
+    <p>Completed Reviews (annotated by 3 users): {{ completed_reviews }}</p>
+    <p>Reviews annotated by 2 users: {{ annotated_by_2_users }}</p>
+    <p>Reviews annotated by 1 user: {{ annotated_by_1_user }}</p>
+    <p>Progress: {{ progress_percentage }}%</p>
 
     <a href="{{ url_for('main.csv_files') }}">Back to CSV Files List</a>
 </body>
