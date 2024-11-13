@@ -8,14 +8,12 @@
         body {
             font-family: Arial, sans-serif;
             background-image: url("{{ url_for('static', filename='login.png') }}");
-            /* background-size: cover; */
             background-position: center;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
             margin: 0;
-            
         }
 
         /* Centered container styling */
@@ -63,6 +61,22 @@
         button[type="submit"]:hover {
             background-color: #0056b3;
         }
+
+        /* Sign-up link styling */
+        .signup-link {
+            margin-top: 20pt;
+            font-size: 10pt;
+            color: #333;
+        }
+        
+        .signup-link a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .signup-link a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -73,6 +87,9 @@
             <input type="password" name="password" placeholder="Password" required><br>
             <button type="submit">Login</button>
         </form>
+        <div class="signup-link">
+            Don't have an account? <a href="{{ url_for('main.register') }}">Sign up</a>
+        </div>
     </div>
 </body>
 </html>
