@@ -73,9 +73,15 @@
         }
 
         button.completed {
-            background-color: #28a745; /* Green color for completed */
-            cursor: default;
-        }
+    background-color: #cccccc; /* Grey color for disabled button */
+    color: #666666;
+    cursor: not-allowed; /* Change cursor to indicate it's not clickable */
+}
+button.completed:hover {
+    background-color: #777777;
+
+}
+
 
         button:hover {
             background-color: #0056b3;
@@ -127,23 +133,34 @@
         {% for csv_file in csv_files %}
         <tr>
             <td>{{ csv_file.filename }}</td>
-            <td>{{ user_annotation_counts[csv_file.id] }} annotations</td> <!-- Display user's annotation count -->
             <td>
-                {% if user_annotation_counts[csv_file.id] == 'Completed' %}
-                    <button class="completed" disabled>Completed</button>
+                {% if user_annotation_counts[csv_file.id].completed %}
+                    Completed
                 {% else %}
-                    <a href="{{ url_for('main.annotate_csv', csv_file_id=csv_file.id) }}">
-                        <button>Annotate</button>
-                    </a>
+                    {{ user_annotation_counts[csv_file.id].count }} annotations
                 {% endif %}
+            </td>
+            <td>
+                <a href="{{ url_for('main.annotate_csv', csv_file_id=csv_file.id) }}">
+                    <button 
+                        {% if user_annotation_counts[csv_file.id].completed %}
+                            class="completed" 
+                            disabled
+                        {% endif %}
+                    >
+                        Annotate
+                    </button>
+                </a>
             </td>
         </tr>
         {% endfor %}
     </table>
-
+    
     {% if csv_files|length == 0 %}
         <p>No CSV files available for annotation.</p>
     {% endif %}
+    
+    
 
     <div class="back-to-home">
         <a href="{{ url_for('main.home') }}">

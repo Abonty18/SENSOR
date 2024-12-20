@@ -25,7 +25,7 @@
         /* Table styling */
         table {
             width: 80%;
-            max-width: 1000px;
+            max-width: 1500px;
             border-collapse: collapse;
             margin-top: 10px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
@@ -85,6 +85,20 @@
         .download-button:hover {
             background-color: #357abd;
         }
+        .delete-button {
+            padding: 10px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .delete-button:hover {
+            background-color: #c0392b;
+        }
 
         /* Message for no files */
         p {
@@ -112,56 +126,69 @@
     </style>
 </head>
 <body>
-    <h2>Uploaded CSV Files</h2>
+
 
     <!-- Table for listing uploaded CSV files and progress details -->
-    <table>
-        <tr>
-            <th>Filename</th>
-            <th>Uploaded By</th>
-            <th>Progress Details</th>
-            <th>Download</th>
-        </tr>
-        {% for data in file_progress_data %}
-            <tr class="{% if data.file.uploaded_by == current_user.id %}user-uploaded{% endif %}">
-                <td>{{ data.file.filename }}</td>
-                
-                <!-- Uploaded By Column -->
-                <td>
-                    {% if data.file.uploaded_by == current_user.id %}
-                        You
-                    {% else %}
-                        {{ data.uploader_name }}
-                    {% endif %}
-                </td>
-                
-                <td>
-                    {% if data.completed_reviews == data.total_reviews and data.total_reviews > 0 %}
-                        <!-- Show "Completed" if all reviews are annotated by 3 users -->
-                        <span class="completed-label">Completed</span>
-                    {% else %}
-                        <!-- Progress details for files not fully completed -->
-                        <table class="progress-table">
-                            <tr><td>Total Reviews:</td><td>{{ data.total_reviews }}</td></tr>
-                            <tr><td>Completed Reviews:</td><td>{{ data.completed_reviews }}</td></tr>
-                            <tr><td>Reviews annotated by 2 users:</td><td>{{ data.annotated_by_2_users }}</td></tr>
-                            <tr><td>Reviews annotated by 1 user:</td><td>{{ data.annotated_by_1_user }}</td></tr>
-                            <tr><td>Progress:</td><td>{{ data.progress_percentage }}%</td></tr>
-                        </table>
-                    {% endif %}
-                </td>
-                <td>
-                    {% if data.completed_reviews == data.total_reviews and data.total_reviews > 0 %}
-                        <a href="{{ url_for('main.download_annotated_csv', csv_file_id=data.file.id) }}" class="download-button">Download</a>
-                    {% endif %}
-                </td>
-            </tr>
-        {% endfor %}
-    </table>
+    <h2>Uploaded CSV Files</h2>
 
-    {% if file_progress_data|length == 0 %}
-        <p>No files uploaded yet.</p>
-    {% endif %}
+    <!-- Form for deleting selected files -->
+    <form action="{{ url_for('main.delete_files') }}" method="POST">
+        <table>
+            <tr>
+                <th>Select</th>
+                <th>Filename</th>
+                <th>Uploaded By</th>
+                <th>Progress Details</th>
+                <th>Download</th>
+            </tr>
+            {% for data in file_progress_data %}
+                <tr class="{% if data.file.uploaded_by == current_user.id %}user-uploaded{% endif %}">
+                    <!-- Checkbox for deletion, only visible for the uploader -->
+                    <td>
+                        {% if data.file.uploaded_by == current_user.id %}
+                            <input type="checkbox" name="delete_files" value="{{ data.file.id }}">
+                        {% endif %}
+                    </td>
+
+                    <td>{{ data.file.filename }}</td>
+
+                    <td>
+                        {% if data.file.uploaded_by == current_user.id %}
+                            You
+                        {% else %}
+                            {{ data.uploader_name }}
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if data.completed_reviews == data.total_reviews and data.total_reviews > 0 %}
+                            <span class="completed-label">Completed</span>
+                        {% else %}
+                            <table class="progress-table">
+                                <tr><td>Total Reviews:</td><td>{{ data.total_reviews }}</td></tr>
+                                <tr><td>Completed Reviews:</td><td>{{ data.completed_reviews }}</td></tr>
+                                <tr><td>Reviews annotated by 2 users:</td><td>{{ data.annotated_by_2_users }}</td></tr>
+                                <tr><td>Reviews annotated by 1 user:</td><td>{{ data.annotated_by_1_user }}</td></tr>
+                                <tr><td>Progress:</td><td>{{ data.progress_percentage }}%</td></tr>
+                            </table>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if data.completed_reviews == data.total_reviews and data.total_reviews > 0 %}
+                            <a href="{{ url_for('main.download_annotated_csv', csv_file_id=data.file.id) }}" class="download-button">Download</a>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </table>
+
+        {% if file_progress_data|length > 0 %}
+            <button type="submit" class="delete-button">Delete Selected Files</button>
+        {% else %}
+            <p>No files uploaded yet.</p>
+        {% endif %}
+    </form>
 
     <!-- Back to Home button -->
     <div class="back-to-home">
