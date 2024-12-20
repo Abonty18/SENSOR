@@ -1,7 +1,6 @@
-# models.py
 from flask_login import UserMixin
 from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, Text, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, Text, DateTime, ForeignKey, Boolean
 from extensions import db  # Import db from extensions, not app
 from sqlalchemy.orm import relationship
 
@@ -29,9 +28,26 @@ class Annotation(db.Model):
     is_final = db.Column(db.Boolean, default=False)  # New flag to mark annotation as final
 
 
+# class CompletedReview(db.Model):
+#     id = db.Column(db.Integer, primary_key=True)
+#     text = db.Column(db.Text, nullable=False)
+#     annotator_1_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+#     annotation_1 = db.Column(db.Text)
+#     annotator_2_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+#     annotation_2 = db.Column(db.Text)
+#     annotator_3_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+#     annotation_3 = db.Column(db.Text)
+#     completed_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    
+#     # Relationships to reference User objects (Optional)
+#     annotator_1 = db.relationship('User', foreign_keys=[annotator_1_id])
+#     annotator_2 = db.relationship('User', foreign_keys=[annotator_2_id])
+#     annotator_3 = db.relationship('User', foreign_keys=[annotator_3_id])
+
 class CompletedReview(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     text = db.Column(db.Text, nullable=False)
+    csv_file_id = db.Column(db.Integer, db.ForeignKey('csv_file.id'), nullable=False)  # Add this line
     annotator_1_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     annotation_1 = db.Column(db.Text)
     annotator_2_id = db.Column(db.Integer, db.ForeignKey('user.id'))
@@ -39,21 +55,20 @@ class CompletedReview(db.Model):
     annotator_3_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     annotation_3 = db.Column(db.Text)
     completed_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-    
-    # Relationships to reference User objects (Optional)
-    annotator_1 = db.relationship('User', foreign_keys=[annotator_1_id])
-    annotator_2 = db.relationship('User', foreign_keys=[annotator_2_id])
-    annotator_3 = db.relationship('User', foreign_keys=[annotator_3_id])
+
 
 
 class CSVFile(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     filename = db.Column(db.String(150), nullable=False)
-    uploaded_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # New field for uploader ID
-    uploader = db.relationship('User', backref='uploaded_files', lazy=True)  # Relationship to User
+    uploaded_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    is_active = db.Column(db.Boolean, default=True)  # Add this column for logical deletion
+    uploader = db.relationship('User', backref='uploaded_files', lazy=True)
     reviews = db.relationship('Review', backref='csv_file_assoc', lazy=True)
 
-  # This backref is causing the conflict
+    # Specify 'overlaps' to avoid relationship conflict
+    back_populates = "reviews"
+
 
 
 class Review(db.Model):
@@ -65,6 +80,7 @@ class Review(db.Model):
     annotation_count = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     csv_file_id = db.Column(db.Integer, db.ForeignKey('csv_file.id'), nullable=False)
+    completed = db.Column(Boolean, default=False)  # Add column to mark review as completed
     
     # New columns for lock management
     lock_time = db.Column(db.DateTime, nullable=True)

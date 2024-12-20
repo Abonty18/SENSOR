@@ -225,52 +225,45 @@ def upload():
 
 
 
-# @main.route('/csv_files')
-# @login_required
-# def csv_files():
-#     if current_user.role == ANNOTATOR_ROLE:
-#         csv_files = CSVFile.query.all()
-#         return render_template('csv_files.html', csv_files=csv_files)
-#     elif current_user.role == DEVELOPER_ROLE:
-#         csv_files = CSVFile.query.all()
-#         return render_template('csv_files_dev.html', csv_files=csv_files)  # Developer template with tracking
-#     else:
-#         flash("Unauthorized access.")
-#         return redirect(url_for('main.home'))
-
-# routes.py
-
 @main.route('/csv_files')
 @login_required
 def csv_files():
     if current_user.role == ANNOTATOR_ROLE:
-        csv_files = CSVFile.query.all()
-        
-        # Dictionary to store the annotation count for the current user per file
+        csv_files = CSVFile.query.filter_by(is_active=True).all()
+
+
+        # Dictionary to store the annotation count and completion status for the current user per file
         user_annotation_counts = {}
         for csv_file in csv_files:
-            # Count annotations made by the current user on reviews linked to this CSV file
+            # Count total reviews for this file
+            total_reviews = Review.query.filter_by(csv_file_id=csv_file.id).count()
+            # Count annotations made by the current user on this file
             user_count = Annotation.query.join(Review).filter(
                 Annotation.user_id == current_user.id,
                 Review.csv_file_id == csv_file.id
             ).count()
-            user_annotation_counts[csv_file.id] = user_count
+            # Check if the annotator has completed all reviews
+            completed = user_count == total_reviews
+            user_annotation_counts[csv_file.id] = {
+                'count': user_count,
+                'completed': completed
+            }
 
         return render_template('csv_files.html', csv_files=csv_files, user_annotation_counts=user_annotation_counts)
 
     elif current_user.role == DEVELOPER_ROLE:
-        csv_files = CSVFile.query.all()
+        # Developer logic remains unchanged
+        csv_files = CSVFile.query.filter_by(is_active=True).all()
+
         file_progress_data = []
 
         for csv_file in csv_files:
-            # Count total reviews and annotation progress details for the developer view
             total_reviews = Review.query.filter_by(csv_file_id=csv_file.id).count()
             completed_reviews = Review.query.filter_by(csv_file_id=csv_file.id, annotation_count=3).count()
             annotated_by_2_users = Review.query.filter_by(csv_file_id=csv_file.id, annotation_count=2).count()
             annotated_by_1_user = Review.query.filter_by(csv_file_id=csv_file.id, annotation_count=1).count()
             progress_percentage = (completed_reviews / total_reviews * 100) if total_reviews > 0 else 0
 
-            # Append progress data for each file
             file_progress_data.append({
                 'file': csv_file,
                 'total_reviews': total_reviews,
@@ -278,7 +271,7 @@ def csv_files():
                 'annotated_by_2_users': annotated_by_2_users,
                 'annotated_by_1_user': annotated_by_1_user,
                 'progress_percentage': progress_percentage,
-                'uploader_name': csv_file.uploader.name if csv_file.uploader else "Unknown"  # Add uploader's name
+                'uploader_name': csv_file.uploader.name if csv_file.uploader else "Unknown"
             })
 
         return render_template('csv_files_dev.html', file_progress_data=file_progress_data)
@@ -293,7 +286,6 @@ def csv_files():
 @login_required
 def annotate_csv(csv_file_id):
     if current_user.role != ANNOTATOR_ROLE:
-        # flash("You do not have permission to access this page.")
         return redirect(url_for('main.home'))
 
     # Lock expired time (e.g., 2 minutes)
@@ -303,10 +295,14 @@ def annotate_csv(csv_file_id):
     Review.query.filter(Review.lock_time < lock_expire_time).update({"in_progress_by": None, "lock_time": None})
     db.session.commit()
 
-    # Get reviews annotated by less than 3 users and not locked by others
+    # Fetch reviews not yet annotated by the current user
+    annotated_review_ids = [annotation.review_id for annotation in Annotation.query.filter_by(user_id=current_user.id).all()]
+
+    # Get the next unannotated review
     review = (Review.query
               .filter(and_(
                   Review.csv_file_id == csv_file_id,
+                  Review.id.notin_(annotated_review_ids),  # Exclude reviews already annotated by this user
                   Review.annotation_count < 3,
                   or_(Review.in_progress_by == None, Review.in_progress_by == current_user.id)))
               .order_by(Review.annotation_count)
@@ -318,17 +314,17 @@ def annotate_csv(csv_file_id):
         review.lock_time = datetime.now(timezone.utc)
         db.session.commit()
 
-    # Calculate the annotation count for the current user on this CSV file
-    annotation_count = Annotation.query.join(Review).filter(
-        Annotation.user_id == current_user.id,
-        Review.csv_file_id == csv_file_id
-    ).count()
+        # Calculate the annotation count for the current user on this CSV file
+        annotation_count = Annotation.query.join(Review).filter(
+            Annotation.user_id == current_user.id,
+            Review.csv_file_id == csv_file_id
+        ).count()
 
-    if review:
         return render_template('annotation.html', review=review, csv_file_id=csv_file_id, annotation_count=annotation_count)
     else:
         flash("No more reviews available for annotation in this file.")
         return redirect(url_for('main.csv_files'))
+
     
 
 @main.route('/submit_annotation', methods=['POST'])
@@ -338,27 +334,33 @@ def submit_annotation():
     annotation_text = request.form.get('annotation')
     csv_file_id = request.form.get('csv_file_id')
 
-    # Ensure the review is still available and locked by this user
-    review = Review.query.filter_by(id=review_id, in_progress_by=current_user.id).first()
+    # Start a transaction and lock the review for update
+    review = Review.query.filter_by(id=review_id).with_for_update().first()
+
+    # Ensure the review exists
     if not review:
         flash("This review is no longer available for annotation.")
         return redirect(url_for('main.csv_files'))
 
     # Save the new annotation
-    new_annotation = Annotation(review_id=review_id, user_id=current_user.id, annotation=annotation_text, is_final=True)
+    new_annotation = Annotation(review_id=review.id, user_id=current_user.id, annotation=annotation_text)
     db.session.add(new_annotation)
-    
-    # Update annotation count for the review
+
+    # Update annotation count
     review.annotation_count += 1
-    review.in_progress_by = None  # Unlock the review
-    review.lock_time = None       # Clear the lock time
 
-    # If the review has received three annotations, mark it as complete
+    # Unlock the review
+    review.in_progress_by = None
+    review.lock_time = None
+
+    # If the review has 3 annotations, mark it as complete
     if review.annotation_count >= 3:
-        # Fetch the annotations for this review
-        annotations = Annotation.query.filter_by(review_id=review_id).order_by(Annotation.created_at).limit(3).all()
-
-        # Create a CompletedReview entry with annotations from each annotator
+        review.completed = True  # Mark the review as completed\
+        print(f"Fetching annotations for Review ID {review.id}...")
+        annotations = Annotation.query.filter_by(review_id=review.id).order_by(Annotation.created_at).limit(3).all()
+        print(f"Annotations fetched: {annotations}")
+        # annotations = Annotation.query.filter_by(review_id=review.id).order_by(Annotation.created_at).limit(3).all()
+        print(f"Creating CompletedReview entry for Review ID {review.id}")
         completed_review = CompletedReview(
             text=review.text,
             annotator_1_id=annotations[0].user_id,
@@ -366,15 +368,18 @@ def submit_annotation():
             annotator_2_id=annotations[1].user_id,
             annotation_2=annotations[1].annotation,
             annotator_3_id=annotations[2].user_id,
-            annotation_3=annotations[2].annotation
+            annotation_3=annotations[2].annotation,
+            csv_file_id=review.csv_file_id  # Ensure csv_file_id is set
         )
         db.session.add(completed_review)
 
-        # Remove the review from active reviews to prevent reassignment
-        db.session.delete(review)
 
+
+    # Commit the transaction
     db.session.commit()
+    print("Database changes committed.")
 
+    # Redirect to the next annotation
     return redirect(url_for('main.annotate_csv', csv_file_id=csv_file_id))
 
 
@@ -383,7 +388,8 @@ def submit_annotation():
 
 @main.route('/check_csv_files')
 def check_csv_files():
-    csv_files = CSVFile.query.all()
+    csv_files = CSVFile.query.filter_by(is_active=True).all()
+
     for file in csv_files:
         print("CSV File:", file.filename)
     return "Check your console for CSV files."
@@ -394,7 +400,8 @@ def check_csv_files():
 @main.route('/check_review_counts')
 def check_review_counts():
     # Query all CSV files and check associated reviews
-    csv_files = CSVFile.query.all()
+    csv_files = CSVFile.query.filter_by(is_active=True).all()
+
     review_data = []
     for file in csv_files:
         # Count reviews linked to each CSV file
@@ -433,31 +440,129 @@ def track_progress(csv_file_id):
     )
 
 
+# @main.route('/download_annotated_csv/<int:csv_file_id>')
+# @login_required
+# def download_annotated_csv(csv_file_id):
+#     # Log the request for debugging
+#     print(f"Initiating download for CSV File ID: {csv_file_id}")
+
+#     # Fetch completed reviews for the given CSV file ID
+#     reviews = CompletedReview.query.filter_by(csv_file_id=csv_file_id).all()
+#     print(f"Completed reviews fetched: {len(reviews)}")
+
+#     # Check if there are any completed reviews
+#     if not reviews:
+#         flash("No completed annotations available for download.")
+#         print("No completed annotations found for this CSV file.")
+#         return redirect(url_for('main.csv_files'))
+
+#     try:
+#         # Organize data into a list of dictionaries
+#         data = [{
+#             'Review Text': review.text,
+#             'Annotation 1': review.annotation_1,
+#             'Annotation 2': review.annotation_2,
+#             'Annotation 3': review.annotation_3
+#         } for review in reviews]
+
+#         # Log the data for debugging
+#         print(f"Data to be included in the CSV: {data}")
+
+#         # Verify data is not empty
+#         if not data:
+#             flash("No data found for this CSV file.")
+#             print("Data extracted from completed reviews is empty.")
+#             return redirect(url_for('main.csv_files'))
+
+#         # Create a DataFrame
+#         df = pd.DataFrame(data)
+
+#         # Save to an in-memory buffer
+#         buffer = io.StringIO()
+#         df.to_csv(buffer, index=False)
+#         buffer.seek(0)
+#         print("CSV file created in memory.")
+
+#         # Send the CSV as a downloadable file
+#         filename = f"annotated_{csv_file_id}.csv"
+#         print(f"Sending file: {filename}")
+#         return send_file(
+#             io.BytesIO(buffer.getvalue().encode('utf-8')),
+#             as_attachment=True,
+#             download_name=filename,
+#             mimetype='text/csv'
+#         )
+#     except Exception as e:
+#         # Log the error
+#         print(f"Error in download route: {e}")
+#         flash("An error occurred while generating the CSV file.")
+#         return redirect(url_for('main.csv_files'))
+
 @main.route('/download_annotated_csv/<int:csv_file_id>')
 @login_required
 def download_annotated_csv(csv_file_id):
-    # Fetch the completed reviews associated with the given CSV file
-    reviews = CompletedReview.query.filter_by(csv_file_id=csv_file_id).all()
+    try:
+        print(f"Initiating download for CSV File ID: {csv_file_id}")
+        reviews = CompletedReview.query.filter_by(csv_file_id=csv_file_id).all()
+        print(f"Fetched reviews for CSV ID {csv_file_id}: {len(reviews)}")
+        
+        if not reviews:
+            flash("No completed annotations available for download.")
+            print(f"No completed reviews for CSV ID {csv_file_id}")
+            return redirect(url_for('main.csv_files'))
 
-    # Check if there are any completed reviews
-    if not reviews:
-        flash("No completed annotations available for download.")
+        data = [{
+            'Review Text': review.text,
+            'Annotation 1': review.annotation_1,
+            'Annotation 2': review.annotation_2,
+            'Annotation 3': review.annotation_3
+        } for review in reviews]
+        print(f"Data to be written: {data}")
+
+        df = pd.DataFrame(data)
+        buffer = io.StringIO()
+        df.to_csv(buffer, index=False, encoding='utf-8')
+        buffer.seek(0)
+        print("CSV buffer created successfully.")
+
+        filename = f"annotated_{csv_file_id}.csv"
+        return send_file(
+            io.BytesIO(buffer.getvalue().encode('utf-8')),
+            as_attachment=True,
+            attachment_filename=filename,  # For Flask 1.1.2
+            mimetype='text/csv'
+        )
+
+    except Exception as e:
+        print(f"Error while generating download: {str(e)}")
+        flash(f"An error occurred: {str(e)}")
         return redirect(url_for('main.csv_files'))
 
-    # Create a DataFrame to organize annotations
-    data = [{
-        'Review Text': review.text,
-        'Annotation 1': review.annotation_1,
-        'Annotation 2': review.annotation_2,
-        'Annotation 3': review.annotation_3
-    } for review in reviews]
-    df = pd.DataFrame(data)
 
-    # Save DataFrame to a CSV in memory
-    buffer = io.StringIO()
-    df.to_csv(buffer, index=False)
-    buffer.seek(0)
 
-    # Send the CSV as a downloadable file
-    filename = f"annotated_{csv_file_id}.csv"
-    return send_file(buffer, as_attachment=True, download_name=filename, mimetype='text/csv')
+
+
+
+@main.route('/delete_files', methods=['POST'])
+@login_required
+def delete_files():
+    if current_user.role != DEVELOPER_ROLE:
+        flash("Unauthorized access.")
+        return redirect(url_for('main.csv_files'))
+
+    # Get the list of file IDs to delete
+    file_ids = request.form.getlist('delete_files')
+
+    # Update only files uploaded by the current user
+    files_to_update = CSVFile.query.filter(CSVFile.id.in_(file_ids), CSVFile.uploaded_by == current_user.id).all()
+    if not files_to_update:
+        flash("No files selected or you cannot delete files you did not upload.")
+        return redirect(url_for('main.csv_files'))
+
+    # Mark the files as inactive
+    for file in files_to_update:
+        file.is_active = False
+
+    db.session.commit()
+    flash(f"{len(files_to_update)} file(s) marked as inactive successfully.")
+    return redirect(url_for('main.csv_files'))
