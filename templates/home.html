@@ -80,6 +80,7 @@
             {% if current_user.role == 'Developer' %}
                 <a href="{{ url_for('main.upload') }}" class="button">Upload CSV for Annotation</a><br>
                 <a href="{{ url_for('main.csv_files') }}" class="button">View Uploaded CSV Files</a><br>
+                <a href="{{ url_for('main.scrape_reviews') }}" class="button">Scrape Google Play Reviews</a><br>
             {% elif current_user.role == 'Annotator' and csv_file_id %}
                 <a href="{{ url_for('main.annotate_csv', csv_file_id=csv_file_id) }}" class="button">Start Annotation</a><br>
             {% else %}

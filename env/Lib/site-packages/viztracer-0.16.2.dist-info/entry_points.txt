@@ -1,0 +1,3 @@
+[console_scripts]
+viztracer = viztracer:main
+vizviewer = viztracer:viewer_main

@@ -175,10 +175,11 @@
                     </td>
 
                     <td>
-                        {% if data.completed_reviews == data.total_reviews and data.total_reviews > 0 %}
+                        {% if current_user.role == DEVELOPER_ROLE or (data.completed_reviews == data.total_reviews and data.total_reviews > 0) %}
                             <a href="{{ url_for('main.download_annotated_csv', csv_file_id=data.file.id) }}" class="download-button">Download</a>
                         {% endif %}
                     </td>
+                    
                 </tr>
             {% endfor %}
         </table>

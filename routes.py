@@ -12,16 +12,176 @@ from sqlalchemy import or_
 from flask import send_file
 import io
 from datetime import datetime, timezone
+from flask import request, flash, redirect, url_for, render_template
+import threading
+from concurrent.futures import ThreadPoolExecutor
+from google_play_scraper import reviews
+from google_play_scraper.exceptions import NotFoundError
+from flask import flash, send_file, request
+from google_play_scraper import Sort
+import requests
+import logging
+from functools import wraps
+from flask import abort
+
 
 
 # import chardet
 
 main = Blueprint('main', __name__)
 
-# @main.route('/')
-# def home():
-#     first_csv_file = CSVFile.query.first()
-#     return render_template('home.html', csv_file_id=first_csv_file.id if first_csv_file else None)
+print_lock = threading.Lock()
+
+SERP_API_KEY = "f7119f53588ef98d5c237d2d0f09777d4fe32afd7410e94c3b1c86cfa1bdcbd0"
+
+def safe_print(message):
+    """Thread-safe printing to the console."""
+    with print_lock:
+        print(message)
+
+logger = logging.getLogger(__name__)
+
+
+
+
+def validate_date(date_str):
+    if not date_str:  # Handle missing date input
+        return None
+    try:
+        return datetime.strptime(date_str, '%Y-%m-%d')
+    except ValueError:
+        return None
+
+def role_required(role):
+    def decorator(f):
+        @wraps(f)
+        def wrapped(*args, **kwargs):
+            if current_user.role != role:
+                flash("Unauthorized access.")
+                return redirect(url_for('main.home'))
+            return f(*args, **kwargs)
+        return wrapped
+    return decorator
+
+def parse_review_date(date_str):
+    """Parse a date string using multiple possible formats."""
+    for fmt in ("%B %d, %Y", "%b %d, %Y"):  # Handles both full and abbreviated month names
+        try:
+            return datetime.strptime(date_str, fmt)
+        except ValueError:
+            continue
+    raise ValueError(f"Date format not recognized: {date_str}")
+
+def scrape_google_play_reviews(app_id, start_date, end_date, lang, country, count):
+    """Scrape reviews from Google Play using SerpAPI."""
+    base_url = "https://serpapi.com/search"
+    reviews = []
+    next_page_token = None
+    total_fetched = 0
+
+    while total_fetched < count:
+        params = {
+            "engine": "google_play_product",
+            "product_id": app_id,
+            "hl": lang,
+            "gl": country,
+            "api_key": SERP_API_KEY,
+            "store": "apps",  # Added store parameter
+            "next_page_token": next_page_token,
+        }
+
+        response = requests.get(base_url, params=params)
+        data = response.json()
+
+        if "error" in data:
+            print(f"Error from API: {data['error']}")
+            break
+
+        if "reviews" not in data:
+            print("No reviews found in response.")
+            break
+
+        for review in data.get("reviews", []):
+            try:
+                review_date = parse_review_date(review.get("date", ""))
+                if start_date <= review_date <= end_date:
+                    reviews.append({
+                        "author": review.get("title", ""),
+                        "content": review.get("snippet", ""),
+                        "rating": review.get("rating", ""),
+                        "date": review.get("iso_date", ""),
+                    })
+                    total_fetched += 1
+                    if total_fetched >= count:
+                        break
+            except ValueError as e:
+                print(f"Failed to parse date: {review.get('date')}, error: {e}")
+
+        next_page_token = data.get("serpapi_pagination", {}).get("next_page_token")
+        if not next_page_token:
+            break
+
+    df = pd.DataFrame(reviews)
+    return df
+
+def fetch_reviews_with_date_filter(app_id, start_date, end_date, lang='en', country='us', count=100):
+    try:
+        all_reviews = []
+        next_page_token = None
+
+        start_date = datetime.strptime(start_date, '%Y-%m-%d')
+        end_date = datetime.strptime(end_date, '%Y-%m-%d')
+
+        while len(all_reviews) < count:
+            params = {
+                "engine": "google_play_product",
+                "product_id": app_id,
+                "hl": lang,
+                "gl": country,
+                "api_key": SERP_API_KEY,
+                "next_page_token": next_page_token
+            }
+
+            print("[DEBUG] Request Params:", params)  # Debug the request parameters
+
+            response = requests.get("https://serpapi.com/search.json", params=params)
+            response_data = response.json()
+
+            # Debug API response
+            print("[DEBUG] API Response:", response_data)
+
+            if "reviews" not in response_data:
+                print("[DEBUG] No reviews found in response.")
+                break
+
+            reviews_data = response_data["reviews"]
+            filtered_reviews = []
+
+            for review in reviews_data:
+                try:
+                    review_date = parse_review_date(review["date"])
+                    if start_date <= review_date <= end_date:
+                        filtered_reviews.append(review)
+                except ValueError as e:
+                    print(f"[ERROR] Failed to parse date: {review['date']}, error: {e}")
+
+            all_reviews.extend(filtered_reviews)
+            print(f"[DEBUG] Total reviews fetched so far: {len(all_reviews)}")
+
+            next_page_token = response_data.get("next_page_token")
+            if not next_page_token:
+                print("[DEBUG] No next page token, ending pagination.")
+                break
+
+        print("[DEBUG] Final fetched reviews count:", len(all_reviews))
+        return pd.DataFrame(all_reviews)
+
+    except Exception as e:
+        print(f"[ERROR] Failed to fetch reviews: {e}")
+        return pd.DataFrame()
+
+
+
 
 
 @main.route('/')
@@ -88,89 +248,7 @@ def logout():
     logout_user()
     return redirect(url_for('main.login'))
 
-# @main.route('/annotation')
-# @login_required
-# def annotation():
-#     review = Review.query.order_by(Review.annotation_count, Review.created_at).first()
-#     if review:
-#         return render_template('annotation.html', review=review)
-#     return "No reviews available for annotation"
 
-# @main.route('/submit_annotation', methods=['POST'])
-
-
-# @main.route('/annotation')
-# @login_required
-# def annotation():
-#     # Get the next review that the current user hasn't annotated
-#     annotated_review_ids = [annotation.review_id for annotation in Annotation.query.filter_by(user_id=current_user.id).all()]
-#     review = Review.query.filter(~Review.id.in_(annotated_review_ids)).order_by(Review.annotation_count, Review.created_at).first()
-    
-#     if review:
-#         return render_template('annotation.html', review=review)
-#     else:
-#         flash("No more reviews available for annotation.")
-#         return redirect(url_for('main.csv_files'))
-
-
-# @main.route('/submit_annotation', methods=['POST'])
-# @login_required
-# def submit_annotation():
-#     review_id = request.form.get('review_id')
-#     annotation_text = request.form.get('annotation')
-#     csv_file_id = request.form.get('csv_file_id')  # Include csv_file_id in form data to redirect back correctly
-    
-#     # Save the new annotation
-#     new_annotation = Annotation(review_id=review_id, user_id=current_user.id, annotation=annotation_text)
-#     db.session.add(new_annotation)
-    
-#     # Update annotation count for the review
-#     review = Review.query.get(review_id)
-#     review.annotation_count += 1
-#     db.session.commit()
-    
-#     flash("Annotation submitted successfully.")
-    
-#     # Redirect to the next available review in the same CSV file
-#     return redirect(url_for('main.annotate_csv', csv_file_id=csv_file_id))
-
-
-
-
-
-# @main.route('/upload', methods=['GET', 'POST'])
-# @login_required
-# def upload():
-#     if current_user.role != DEVELOPER_ROLE:
-#         flash("You do not have permission to access this page.")
-#         return redirect(url_for('main.home'))
-
-#     if request.method == 'POST':
-#         file = request.files['file']
-#         if file and file.filename.endswith('.csv'):
-#             try:
-#                 # Detect encoding
-#                 raw_data = file.read()
-#                 result = chardet.detect(raw_data)
-#                 file_encoding = result['encoding']
-#                 file.seek(0)  # Reset file pointer after reading
-
-#                 # Read CSV with detected encoding
-#                 data = pd.read_csv(file, encoding=file_encoding)
-                
-#                 # Process the CSV data and add to the database
-#                 for _, row in data.iterrows():
-#                     review = Review(text=row['review_text'])  # Adjust if column name is different
-#                     db.session.add(review)
-#                 db.session.commit()
-#                 flash("CSV file uploaded successfully and reviews added.")
-#                 return redirect(url_for('main.upload'))
-#             except Exception as e:
-#                 flash(f"Error processing file: {e}")
-#                 return redirect(url_for('main.upload'))
-#         else:
-#             flash("Please upload a valid CSV file.")
-#     return render_template('upload.html')
 
 @main.route('/upload', methods=['GET', 'POST'])
 @login_required
@@ -263,6 +341,7 @@ def csv_files():
             annotated_by_2_users = Review.query.filter_by(csv_file_id=csv_file.id, annotation_count=2).count()
             annotated_by_1_user = Review.query.filter_by(csv_file_id=csv_file.id, annotation_count=1).count()
             progress_percentage = (completed_reviews / total_reviews * 100) if total_reviews > 0 else 0
+            print(f"File: {csv_file.filename} | Total Reviews: {total_reviews} | Completed Reviews: {completed_reviews}")
 
             file_progress_data.append({
                 'file': csv_file,
@@ -440,63 +519,6 @@ def track_progress(csv_file_id):
     )
 
 
-# @main.route('/download_annotated_csv/<int:csv_file_id>')
-# @login_required
-# def download_annotated_csv(csv_file_id):
-#     # Log the request for debugging
-#     print(f"Initiating download for CSV File ID: {csv_file_id}")
-
-#     # Fetch completed reviews for the given CSV file ID
-#     reviews = CompletedReview.query.filter_by(csv_file_id=csv_file_id).all()
-#     print(f"Completed reviews fetched: {len(reviews)}")
-
-#     # Check if there are any completed reviews
-#     if not reviews:
-#         flash("No completed annotations available for download.")
-#         print("No completed annotations found for this CSV file.")
-#         return redirect(url_for('main.csv_files'))
-
-#     try:
-#         # Organize data into a list of dictionaries
-#         data = [{
-#             'Review Text': review.text,
-#             'Annotation 1': review.annotation_1,
-#             'Annotation 2': review.annotation_2,
-#             'Annotation 3': review.annotation_3
-#         } for review in reviews]
-
-#         # Log the data for debugging
-#         print(f"Data to be included in the CSV: {data}")
-
-#         # Verify data is not empty
-#         if not data:
-#             flash("No data found for this CSV file.")
-#             print("Data extracted from completed reviews is empty.")
-#             return redirect(url_for('main.csv_files'))
-
-#         # Create a DataFrame
-#         df = pd.DataFrame(data)
-
-#         # Save to an in-memory buffer
-#         buffer = io.StringIO()
-#         df.to_csv(buffer, index=False)
-#         buffer.seek(0)
-#         print("CSV file created in memory.")
-
-#         # Send the CSV as a downloadable file
-#         filename = f"annotated_{csv_file_id}.csv"
-#         print(f"Sending file: {filename}")
-#         return send_file(
-#             io.BytesIO(buffer.getvalue().encode('utf-8')),
-#             as_attachment=True,
-#             download_name=filename,
-#             mimetype='text/csv'
-#         )
-#     except Exception as e:
-#         # Log the error
-#         print(f"Error in download route: {e}")
-#         flash("An error occurred while generating the CSV file.")
-#         return redirect(url_for('main.csv_files'))
 
 @main.route('/download_annotated_csv/<int:csv_file_id>')
 @login_required
@@ -505,7 +527,7 @@ def download_annotated_csv(csv_file_id):
         print(f"Initiating download for CSV File ID: {csv_file_id}")
         reviews = CompletedReview.query.filter_by(csv_file_id=csv_file_id).all()
         print(f"Fetched reviews for CSV ID {csv_file_id}: {len(reviews)}")
-        
+
         if not reviews:
             flash("No completed annotations available for download.")
             print(f"No completed reviews for CSV ID {csv_file_id}")
@@ -529,7 +551,7 @@ def download_annotated_csv(csv_file_id):
         return send_file(
             io.BytesIO(buffer.getvalue().encode('utf-8')),
             as_attachment=True,
-            attachment_filename=filename,  # For Flask 1.1.2
+            download_name=filename,  # Updated parameter
             mimetype='text/csv'
         )
 
@@ -537,6 +559,8 @@ def download_annotated_csv(csv_file_id):
         print(f"Error while generating download: {str(e)}")
         flash(f"An error occurred: {str(e)}")
         return redirect(url_for('main.csv_files'))
+
+
 
 
 
@@ -566,3 +590,52 @@ def delete_files():
     db.session.commit()
     flash(f"{len(files_to_update)} file(s) marked as inactive successfully.")
     return redirect(url_for('main.csv_files'))
+
+
+@main.route('/scrape_reviews', methods=['GET', 'POST'])
+@login_required
+@role_required(DEVELOPER_ROLE)
+def scrape_reviews():
+    if request.method == 'POST':
+        app_id = request.form.get('app_id')
+        lang = request.form.get('lang', 'en')
+        country = request.form.get('country', 'us')
+        start_date_str = request.form.get('start_date')
+        end_date_str = request.form.get('end_date')
+        count = int(request.form.get('count', 100))
+
+        try:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+        except ValueError:
+            flash("Invalid date format. Please use YYYY-MM-DD.")
+            return redirect(url_for('main.scrape_reviews'))  # Fixed endpoint
+
+        if start_date > end_date:
+            flash("Start date cannot be after end date.")
+            return redirect(url_for('main.scrape_reviews'))  # Fixed endpoint
+
+        try:
+            reviews_df = scrape_google_play_reviews(app_id, start_date, end_date, lang, country, count)
+
+            if reviews_df.empty:
+                flash("No reviews found for the given parameters.")
+                return redirect(url_for('main.scrape_reviews'))  # Fixed endpoint
+
+            buffer = io.StringIO()
+            reviews_df.to_csv(buffer, index=False, encoding='utf-8')
+            buffer.seek(0)
+            filename = f"{app_id}_reviews_{start_date.strftime('%Y%m%d')}_to_{end_date.strftime('%Y%m%d')}.csv"
+
+            return send_file(
+                io.BytesIO(buffer.getvalue().encode('utf-8')),
+                as_attachment=True,
+                download_name=filename,  # Corrected parameter name
+                mimetype='text/csv'
+            )
+
+        except Exception as e:
+            flash(f"An error occurred: {e}")
+            return redirect(url_for('main.scrape_reviews'))  # Fixed endpoint
+
+    return render_template('scrape_reviews.html')
