@@ -19,7 +19,7 @@ import os
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or os.urandom(24)
     WTF_CSRF_ENABLED = True  # CSRF protection enabled
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///instance/annotations.db'
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///annotations.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Email settings for Flask-Mail, using environment variables for safety
