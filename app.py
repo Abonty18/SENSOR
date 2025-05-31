@@ -1,4 +1,5 @@
-# app.py
+import eventlet
+eventlet.monkey_patch()
 from flask import Flask
 from config import Config
 from extensions import db, login_manager
