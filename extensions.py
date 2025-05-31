@@ -3,9 +3,11 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask import Flask
 import os
+from flask_mail import Mail
 
 db = SQLAlchemy()
 login_manager = LoginManager()
+# Initialize Flask-Mail
 
 def init_app(app: Flask):
     # Use DATABASE_URL as configured in Render

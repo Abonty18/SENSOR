@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Model Annotation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+
+</head>
+<body>
+    <h2>Model Annotation in Progress</h2>
+    <p>Please wait while the model annotates your file...</p>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Trigger form submission to start model annotation
+            fetch('{{ url_for("main.model_annotation", csv_file_id=csv_file_id) }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.blob(); // Retrieve the file as a blob
+                } else {
+                    throw new Error('Failed to download file');
+                }
+            })
+            .then(blob => {
+                // Create a link element and trigger a download
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'annotated_reviews.csv'; // Name for the downloaded file
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                // Redirect back to the file list page
+                window.location.href = "{{ url_for('main.csv_files') }}";
+            })
+            .catch(error => {
+                console.error('Error during annotation:', error);
+                alert('An error occurred while annotating the file.');
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -15,9 +15,8 @@
             color: #333;
         }
 
-        /* Heading styling */
         h2 {
-            color: #007bff;
+            color: #183580;
             font-size: 34px;
             margin-bottom: 20px;
         }
@@ -53,7 +52,7 @@
             font-size: 30px;
         }
         th {
-            background-color: #007bff;
+            background-color: #183580;
             color: #fff;
         }
         tr:nth-child(even) {
@@ -63,7 +62,7 @@
         /* Button styling */
         button {
             padding: 8px 16px;
-            background-color: #007bff;
+            background-color: #183580;
             color: #fff;
             border: none;
             border-radius: 6px;
@@ -96,7 +95,7 @@ button.completed:hover {
 
         /* Link styling for upload (if enabled) */
         a {
-            color: #007bff;
+            color: #183580;
             text-decoration: none;
             margin-top: 15px;
             display: inline-block;
@@ -108,11 +107,10 @@ button.completed:hover {
             color: #0056b3;
         }
     </style>
-</head>
-<body>
+</head> -->
+<!-- <body>
     <h2>Available CSV Files for Annotation</h2>
 
-    <!-- Flash messages section -->
     {% with messages = get_flashed_messages() %}
         {% if messages %}
             <ul>
@@ -123,7 +121,6 @@ button.completed:hover {
         {% endif %}
     {% endwith %}
 
-    <!-- Table for listing CSV files -->
     <table>
         <tr>
             <th>Filename</th>
@@ -166,6 +163,236 @@ button.completed:hover {
         <a href="{{ url_for('main.home') }}">
             <button>Back to Home</button>
         </a>
+    </div>
+</body>
+</html> -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Annotator Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: "Roboto Condensed", sans-serif;
+            font-optical-sizing: auto;
+            margin: 0;
+            background-color: #f4f6f8;
+            color: #333;
+        }
+
+        /* Navbar */
+        .navbar {
+            /* background-color: #102e66; */
+            /* font-family: "Poppins", "Segoe UI", "Helvetica Neue", sans-serif; */
+    background-color: #324d6d; /* Nordic Ice Primary */
+    color: white;
+    font-family: "Roboto Condensed", sans-serif;
+  font-optical-sizing: auto;
+
+            /* background-color: #183580; */
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          
+        }
+
+        .navbar .title {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .navbar .profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .profile-icon {
+            width: 36px;
+            height: 36px;
+            background-color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #324d6d;
+            font-weight: bold;
+        }
+
+        .logout-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        /* Main content */
+        .container {
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        h2 {
+            font-size: 28px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        /* Flash messages */
+        .flash-message {
+            background-color: #ffe0e0;
+            color: #721c24;
+            padding: 12px 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            border: 1px solid #f5c6cb;
+        }
+
+        /* Cards for each CSV file */
+        .csv-card {
+            background: white;
+            border-radius: 10px;
+            
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.06);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .csv-details {
+            flex: 1;
+        }
+
+        .csv-details h3 {
+            margin: 0 0 10px;
+            font-size: 20px;
+            color:#324d6d;
+        }
+
+        .csv-details p {
+            margin: 0;
+            font-size: 16px;
+            color: #555;
+        }
+
+        .csv-actions button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color:#324d6d;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .csv-actions button.completed {
+            background-color: #cccccc;
+            color: #666666;
+            cursor: not-allowed;
+        }
+
+        .csv-actions button:hover:not(.completed) {
+            background-color: #243850;
+        }
+
+        .no-files {
+            text-align: center;
+            font-size: 18px;
+            color: #888;
+            margin-top: 40px;
+        }
+
+        .back-to-home {
+            text-align: center;
+            margin-top: 40px;
+        }
+
+        .back-to-home button {
+            padding: 10px 20px;
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .back-to-home button:hover {
+            background-color: #5a6268;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div class="title">Annotator Dashboard</div>
+        <div class="profile">
+            <div class="profile-icon">{{ current_user.name[0] | upper }}</div>
+            <form action="{{ url_for('main.logout') }}" method="get">
+                <button type="submit" class="logout-btn">Logout</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>Assigned CSV Files</h2>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="flash-message">
+                    {{ messages[0] }}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% for csv_file in csv_files %}
+        <div class="csv-card">
+            <div class="csv-details">
+                <h3>{{ csv_file.filename }}</h3>
+                <p>
+                    {% if user_annotation_counts[csv_file.id].completed %}
+                        ✅ You’ve completed all annotations.
+                    {% else %}
+                        📝 {{ user_annotation_counts[csv_file.id].count }} annotated so far.
+                    {% endif %}
+                </p>
+            </div>
+            <div class="csv-actions">
+                <a href="{{ url_for('main.annotate_csv', csv_file_id=csv_file.id) }}">
+                    <button 
+                        {% if user_annotation_counts[csv_file.id].completed %}
+                            class="completed"
+                            disabled
+                        {% endif %}
+                    >
+                        Annotate
+                    </button>
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+
+        {% if csv_files|length == 0 %}
+            <p class="no-files">No CSV files available for annotation.</p>
+        {% endif %}
+
+        <!-- <div class="back-to-home">
+            <a href="{{ url_for('main.home') }}">
+                <button>Back to Home</button>
+            </a>
+        </div> -->
     </div>
 </body>
 </html>

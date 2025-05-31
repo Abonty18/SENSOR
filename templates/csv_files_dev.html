@@ -3,10 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <title>Uploaded CSV Files</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+
     <style>
         /* General body styling */
         body {
-            font-family: Arial, sans-serif;
+            font-family: "Roboto Condensed", sans-serif;
+            font-optical-sizing: auto;
             background-color: #f9f9fc;
             display: flex;
             flex-direction: column;
@@ -17,7 +24,7 @@
 
         /* Heading styling */
         h2 {
-            color: #4a90e2;
+            color: #324d6d;
             font-size: 34px;
             margin-bottom: 20px;
         }
@@ -40,7 +47,7 @@
             font-size: 18px;
         }
         th {
-            background-color: #4a90e2;
+            background-color: #324d6d;
             color: #fff;
             font-weight: bold;
         }
@@ -74,16 +81,22 @@
         .download-button {
             display: inline-block;
             padding: 8px 12px;
-            background-color: #4a90e2;
+            background-color: #324d6d;
             color: #fff;
             border-radius: 5px;
             font-size: 14px;
             text-decoration: none;
-            transition: background-color 0.3s ease;
+            transition: background-color 0.3s ease, transform 0.2s ease;
             margin-top: 5px;
         }
         .download-button:hover {
-            background-color: #357abd;
+            background-color:#273e5b;
+            transform: scale(1.05);
+        }
+
+        .download-button:active {
+            transform: scale(0.95); /* Slight zoom-out effect on click */
+            background-color: #324d6d; /* Even darker orange for active state */
         }
         .delete-button {
             padding: 10px;
@@ -108,21 +121,56 @@
         }
 
         /* Back to Home button */
-        .back-to-home {
-            margin-top: 20px;
-        }
-        .back-to-home a {
-            text-decoration: none;
-            padding: 10px 20px;
-            background-color: #4a90e2;
+        /* Back to Home button styling */
+.back-to-home {
+    /* margin-top: 20px; */
+    display: flex;
+    justify-content: center; /* Center horizontally */
+    align-items: center; /* Center vertically */
+    height: 100vh; /* Full page height */
+}
+
+.back-to-home a {
+    text-decoration: none;
+    padding: 10px 20px;
+    background-color:#324d6d;
+    color: #fff;
+    border-radius: 5px;
+    font-size: 18px;
+    font-weight: bold;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.back-to-home a:hover {
+    background-color: #253c58;
+    transform: scale(1.05); /* Slight zoom-in effect on hover */
+}
+
+        /* Model Annotation button styling */
+        .model-annotation-button {
+            display: inline-block;
+            padding: 8px 12px;
+            background-color: #13d557; /* Orange color */
             color: #fff;
             border-radius: 5px;
-            font-size: 18px;
-            font-weight: bold;
+            font-size: 14px;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            margin-top: 5px;
         }
-        .back-to-home a:hover {
-            background-color: #357abd;
+
+        .model-annotation-button:hover {
+            background-color: #12c150; /* Slightly darker orange on hover */
+            transform: scale(1.05); /* Slight zoom-in effect */
         }
+
+        .model-annotation-button:active {
+            transform: scale(0.95); /* Slight zoom-out effect on click */
+            background-color: #12c150; /* Even darker orange for active state */
+        }
+
     </style>
 </head>
 <body>
@@ -142,45 +190,58 @@
                 <th>Download</th>
             </tr>
             {% for data in file_progress_data %}
-                <tr class="{% if data.file.uploaded_by == current_user.id %}user-uploaded{% endif %}">
-                    <!-- Checkbox for deletion, only visible for the uploader -->
-                    <td>
-                        {% if data.file.uploaded_by == current_user.id %}
-                            <input type="checkbox" name="delete_files" value="{{ data.file.id }}">
-                        {% endif %}
-                    </td>
+            <tr class="{% if data.file.uploaded_by == current_user.id %}user-uploaded{% endif %}">
+                <td>
+                    {% if data.file.uploaded_by == current_user.id %}
+                        <input type="checkbox" name="delete_files" value="{{ data.file.id }}">
+                    {% endif %}
+                </td>
+            
+                <td>{{ data.file.filename }}</td>
+            
+                <td>
+                    {% if data.file.uploaded_by == current_user.id %}
+                        You
+                    {% else %}
+                        {{ data.uploader_name }}
+                    {% endif %}
+                </td>
+            
+                <td>
+                    {% if data.completed_reviews == data.total_reviews and data.total_reviews > 0 %}
+                        <span class="completed-label">Completed</span>
+                    {% else %}
+                        <table class="progress-table">
+                            <tr><td>Total Reviews:</td><td>{{ data.total_reviews }}</td></tr>
+                            <tr><td>Completed Reviews:</td><td>{{ data.completed_reviews }}</td></tr>
+                            <tr><td>Reviews annotated by 2 users:</td><td>{{ data.annotated_by_2_users }}</td></tr>
+                            <tr><td>Reviews annotated by 1 user:</td><td>{{ data.annotated_by_1_user }}</td></tr>
+                            <tr><td>Progress:</td><td>{{ data.progress_percentage }}%</td></tr>
+                        </table>
+                    {% endif %}
+                </td>
+            
+                <!-- <td>
+                    {% if current_user.role == DEVELOPER_ROLE or (data.completed_reviews == data.total_reviews and data.total_reviews > 0) %}
+                        <a href="{{ url_for('main.download_annotated_csv', csv_file_id=data.file.id) }}" class="download-button">Download</a>
+                    {% else %}
+                        <form method="POST" action="{{ url_for('main.model_annotation', csv_file_id=data.file.id) }}">
+                            <button type="submit" class="model-annotation-button">Model Annotation</button>
+                        </form>
 
-                    <td>{{ data.file.filename }}</td>
-
-                    <td>
-                        {% if data.file.uploaded_by == current_user.id %}
-                            You
-                        {% else %}
-                            {{ data.uploader_name }}
-                        {% endif %}
-                    </td>
-
-                    <td>
-                        {% if data.completed_reviews == data.total_reviews and data.total_reviews > 0 %}
-                            <span class="completed-label">Completed</span>
-                        {% else %}
-                            <table class="progress-table">
-                                <tr><td>Total Reviews:</td><td>{{ data.total_reviews }}</td></tr>
-                                <tr><td>Completed Reviews:</td><td>{{ data.completed_reviews }}</td></tr>
-                                <tr><td>Reviews annotated by 2 users:</td><td>{{ data.annotated_by_2_users }}</td></tr>
-                                <tr><td>Reviews annotated by 1 user:</td><td>{{ data.annotated_by_1_user }}</td></tr>
-                                <tr><td>Progress:</td><td>{{ data.progress_percentage }}%</td></tr>
-                            </table>
-                        {% endif %}
-                    </td>
-
-                    <td>
-                        {% if current_user.role == DEVELOPER_ROLE or (data.completed_reviews == data.total_reviews and data.total_reviews > 0) %}
-                            <a href="{{ url_for('main.download_annotated_csv', csv_file_id=data.file.id) }}" class="download-button">Download</a>
-                        {% endif %}
-                    </td>
-                    
-                </tr>
+                    {% endif %}
+                </td> -->
+                <td>
+                    {% if current_user.role == DEVELOPER_ROLE or (data.completed_reviews == data.total_reviews and data.total_reviews > 0) %}
+                        <a href="{{ url_for('main.download_annotated_csv', csv_file_id=data.file.id) }}" class="download-button">Download</a>
+                    {% else %}
+                        <a href="{{ url_for('main.start_annotation', csv_file_id=data.file.id) }}" class="model-annotation-button">Model Annotation</a>
+                    {% endif %}
+                </td>
+                
+                
+            </tr>
+            
             {% endfor %}
         </table>
 
@@ -195,5 +256,6 @@
     <div class="back-to-home">
         <a href="{{ url_for('main.home') }}">Back to Home</a>
     </div>
+    
 </body>
 </html>

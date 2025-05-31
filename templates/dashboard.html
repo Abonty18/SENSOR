@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+          font-family: "Roboto Condensed", sans-serif;
+          font-optical-sizing: auto;
+            margin: 0;
+            background-color: #f4f6f8;
+            color: #333;
+        }
+        .navbar {
+            background-color: #007bff;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+        }
+        .navbar .title {
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .navbar .profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .profile-icon {
+            width: 36px;
+            height: 36px;
+            background-color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #007bff;
+            font-weight: bold;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+        h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .section {
+            margin-bottom: 50px;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        .card h3 {
+            margin-top: 0;
+            color: #007bff;
+        }
+        .button {
+            padding: 10px 20px;
+            font-size: 14px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        .completed {
+            background-color: #ccc;
+            color: #555;
+            cursor: not-allowed;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+<div class="navbar">
+    <div class="title">Unified Dashboard</div>
+    <div class="profile">
+        <div class="profile-icon">{{ current_user.name[0]|upper }}</div>
+        <form method="get" action="{{ url_for('main.logout') }}">
+            <button class="button" style="background:none; border:none; color:white; font-size:16px;">Logout</button>
+        </form>
+    </div>
+</div>
+<div class="container">
+    <div class="section">
+        <h2>📝 My Assigned Files</h2>
+        {% for csv_file in csv_files %}
+        <div class="card">
+            <h3>{{ csv_file.filename }}</h3>
+            <p>
+                {% if user_annotation_counts[csv_file.id].completed %}
+                    ✅ Completed
+                {% else %}
+                    {{ user_annotation_counts[csv_file.id].count }} annotations
+                {% endif %}
+            </p>
+            <a href="{{ url_for('main.annotate_csv', csv_file_id=csv_file.id) }}">
+                <button class="button {% if user_annotation_counts[csv_file.id].completed %}completed{% endif %}" {% if user_annotation_counts[csv_file.id].completed %}disabled{% endif %}>Annotate</button>
+            </a>
+        </div>
+        {% endfor %}
+        {% if csv_files|length == 0 %}<p>No CSV files assigned.</p>{% endif %}
+    </div>
+
+    {% if current_user.role == 'Developer' %}
+    <div class="section">
+        <h2>📊 Progress Overview</h2>
+        <table>
+            <tr>
+                <th>File</th>
+                <th>Total</th>
+                <th>Done</th>
+                <th>By 2 Users</th>
+                <th>By 1 User</th>
+                <th>Progress</th>
+            </tr>
+            {% for data in file_progress_data %}
+            <tr>
+                <td>{{ data.file.filename }}</td>
+                <td>{{ data.total }}</td>
+                <td>{{ data.done }}</td>
+                <td>{{ data.by_2 }}</td>
+                <td>{{ data.by_1 }}</td>
+                <td>{{ data.percent|round(1) }}%</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>🔍 Scrape Google Play Reviews</h2>
+        <form method="POST" action="{{ url_for('main.scrape_reviews') }}">
+            {{ form.hidden_tag() }}
+            <label>App ID:</label>
+            {{ form.app_id() }}<br><br>
+            <label>Start Date:</label>
+            {{ form.start_date() }}
+            <label>End Date:</label>
+            {{ form.end_date() }}<br><br>
+            {{ form.submit(class="button") }}
+        </form>
+        {% if file_name %}<p><strong>Saved File:</strong> {{ file_name }}</p>{% endif %}
+    </div>
+    {% endif %}
+</div>
+</body>
+</html>
