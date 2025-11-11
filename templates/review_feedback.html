@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Review Feedback</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    body { font-family: "Roboto Condensed", sans-serif; background: #f4f6f8; }
+    .navbar { background-color: #324d6d; }
+    .navbar-brand, .nav-link { color: white!important; }
+    .section-card {
+      background: #fff; padding: 30px; border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.06); margin-top: 2rem;
+    }
+    .section-header {
+      font-size: 1.6rem; margin-bottom: 20px; color: #324d6d;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .btn-primary { background: #324d6d; border-color: #324d6d; }
+    .btn-primary:hover { background: #243850; }
+    .btn-danger  { background: #d9534f; border-color: #d43f3a; }
+    .btn-danger:hover  { background: #c9302c; }
+    .btn-download {
+  background-color: #28a745;  /* Bootstrap's green */
+  border-color: #28a745;
+  color: white;
+}
+
+.btn-download:hover {
+  background-color: #218838;  /* Slightly darker green */
+  border-color: #1e7e34;
+  color: white;
+}
+.btn-custom-download {
+  background-color: #28a745; /* green */
+  border-color: #28a745;
+  color: white;
+}
+
+.btn-custom-download:hover {
+  background-color: #218838; /* darker green */
+  border-color: #1e7e34;
+  color: white;
+}
+.table-bordered th:first-child,
+.table-bordered td:first-child {
+  max-width: 54vw; /* or any smaller width you want */
+  word-wrap: break-word;
+  white-space: normal;
+}
+
+
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">🛡 SENSOR</a>
+      <div class="d-flex">
+        <span class="nav-link">{{ current_user.name }} ({{ current_user.role }})</span>
+        <a class="nav-link" href="{{ url_for('main.logout') }}">Logout</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="section-card">
+      <div class="section-header">
+        <i class="bi bi-eye"></i>
+        Review Feedback for “{{ csv_file.filename }}”
+      </div>
+
+      <!-- CSRF + Form Begin -->
+      <form method="POST">
+        {{ form.hidden_tag() }}
+
+        {% if annotations is none %}
+  <!-- STEP 1: choose filter -->
+  <div class="mb-4">
+    <label class="form-label">Select which reviews to inspect:</label>
+    <select name="filter_type" class="form-select">
+      <option value="privacy">Privacy-related</option>
+      <option value="nonprivacy">Non-privacy</option>
+    </select>
+  </div>
+
+  <div class="d-flex justify-content-between align-items-center">
+  <button type="submit" class="btn btn-primary" name="action" value="load_reviews">
+    Load Reviews
+  </button>
+
+  <button type="submit" class="btn btn-download" name="action" value="download">
+    Download
+  </button>
+</div>
+
+<div class="text-center mt-3">
+  <a href="{{ url_for('main.home') }}" class="btn btn-outline-secondary">
+    Back to Home
+  </a>
+</div>
+
+
+
+
+{% else %}
+
+          <!-- STEP 2: show filtered results -->
+          <input type="hidden" name="filter_type" value="{{ filter_type }}">
+          {% if annotations %}
+            <div class="table-responsive mb-3">
+              <table class="table table-bordered">
+                <thead class="table-light">
+                  <tr>
+                    <th>Review Content</th>
+                    <th>Model Annotation</th>
+                    <th>Disagree</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for ann in annotations %}
+                    <tr>
+                      <td>{{ ann.review.text }}</td>
+                      <td>{{ ann.annotation }}</td>
+                      <td class="text-center">
+                        <input type="checkbox" name="not_agree" value="{{ ann.id }}">
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            <div class="text-center my-3">
+  <button type="submit" name="submit_feedback" value="1" class="btn btn-custom-download">
+    Submit Feedback and Download
+  </button>
+</div>
+<div class="text-center mt-3">
+  <a href="{{ url_for('main.home') }}" class="btn btn-outline-secondary">
+    Back to Home
+  </a>
+</div>
+
+
+          {% else %}
+            <p class="text-muted">
+              No model-generated annotations found for that category.
+            </p>
+            <a href="{{ url_for('main.review_feedback', csv_file_id=csv_file.id) }}"
+               class="btn btn-outline-secondary">
+              Change Filter
+            </a>
+          {% endif %}
+        {% endif %}
+      </form>
+      <!-- Form End -->
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
