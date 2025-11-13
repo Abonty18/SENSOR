@@ -20,13 +20,11 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 # Copy your whole project
 COPY . .
 
-# Cloud Run passes $PORT. We'll default to 8080 for local runs.
+# Fly (and most PaaS) pass $PORT; default to 8080 for local runs
 ENV PORT=8080
 
-# Flexible entrypoint: choose your gunicorn target via env without changing code.
-# If you already have wsgi.py exposing "app", leave default as wsgi:app.
-# Otherwise set GUNICORN_CMD=app:app or GUNICORN_CMD='app:create_app()' at runtime.
-ENV GUNICORN_CMD="wsgi:app"
+# Gunicorn target: your Flask app is `app` inside app.py → app:app
+ENV GUNICORN_CMD="app:app"
 
-# Start server
-CMD ["sh", "-c", "gunicorn ${GUNICORN_CMD} --bind 0.0.0.0:${PORT} --workers 2 --threads 2 --timeout 120"]
+# Start server with eventlet for Flask-SocketIO
+CMD ["sh", "-c", "gunicorn -k eventlet -w 1 --worker-connections 1000 --bind 0.0.0.0:${PORT} ${GUNICORN_CMD}"]
