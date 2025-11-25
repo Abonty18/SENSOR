@@ -2,8 +2,8 @@
 import os
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import login_user, login_required, logout_user, current_user
-from extensions import db
-from models import User, Review, Annotation, CompletedReview, CSVFile,CSVFileInvite,DeveloperFeedback,  DEVELOPER_ROLE, ANNOTATOR_ROLE  # Import CSVFile
+from extensions import db, mail, socketio
+from models import User, Review, Annotation, CompletedReview, CSVFile, CSVFileInvite, DeveloperFeedback, DEVELOPER_ROLE, ANNOTATOR_ROLE
 from werkzeug.security import generate_password_hash, check_password_hash
 import pandas as pd
 from sqlalchemy import and_
@@ -30,28 +30,26 @@ import types
 import dill
 from model_loader import model
 import os
-from custom_transformers import OptimalSVD, BinaryToMulticlassPipeline, Word2VecTransformer, bert_class_inference
+from custom_transformers import OptimalSVD, BinaryToMulticlassPipeline, Word2VecTransformer
 import dill
 from flask_mail import Message
 from itsdangerous import URLSafeTimedSerializer as Serializer
 from flask import current_app
-from app import mail
 from sqlalchemy.exc import IntegrityError
+from flask_socketio import emit
 import string
 import random
 from forms import LoginForm,OTPForm,AnnotationForm,ScrapeReviewsForm, InviteAnnotatorsForm ,  UploadCSVForm# Import the LoginForm class
 from model_loader import model
 import joblib
 from sklearn.feature_extraction.text import TfidfVectorizer
-from flask import Response
-from flask_socketio import SocketIO, emit
+from flask import Response 
 import time 
 # import chardet
 # Initialize model variable
 model = None
 vectorizer = None
 
-socketio = SocketIO()
 main = Blueprint('main', __name__, template_folder='templates')
 
 print_lock = threading.Lock()
