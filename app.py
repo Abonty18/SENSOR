@@ -1,6 +1,5 @@
 # app.py
-import eventlet
-eventlet.monkey_patch()  # MUST be before any other imports
+
 import os
 from flask import Flask
 from config import Config
