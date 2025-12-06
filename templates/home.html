@@ -212,7 +212,12 @@
     width: 100%;
     box-shadow: 0 0 20px rgba(0,0,0,0.2);
 }
-
+    #appSuggestions .list-group-item {
+        cursor: pointer;
+    }
+    #appSuggestions .list-group-item small {
+        font-size: 0.8rem;
+    }
 
     </style>
 </head>
@@ -257,10 +262,22 @@
         </h3>
         <form method="POST" action="{{ url_for('main.scrape_reviews') }}" class="row g-3">
             {{ form.hidden_tag() }}
-            <div class="col-md-4">
-                <label class="form-label">App ID</label>
-                {{ form.app_id(class="form-control") }}
-            </div>
+            <div class="col-md-4 position-relative">
+    <label class="form-label">App ID</label>
+    {{ form.app_id(
+        class="form-control",
+        id="app_id",
+        autocomplete="off",
+        placeholder="Start typing app name or ID..."
+    ) }}
+
+    <div id="appSuggestions"
+         class="list-group position-absolute w-100 shadow-sm d-none"
+         style="z-index: 2000; max-height: 240px; overflow-y: auto; font-size: 0.9rem;">
+    </div>
+</div>
+
+
             <div class="col-md-4">
                 <label class="form-label">Start Date</label>
                 {{ form.start_date(class="form-control") }}
@@ -667,6 +684,115 @@ function viewSummary(fileId) {
 <!-- Bootstrap JS (with Popper) -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+  const APP_LIST = [
+    { id: "com.facebook.katana",      name: "Facebook",                     category: "Social" },
+    { id: "com.facebook.lite",        name: "Facebook Lite",                category: "Social" },
+    { id: "com.facebook.orca",        name: "Messenger",                    category: "Messaging" },
+    { id: "com.facebook.mlite",       name: "Messenger Lite",               category: "Messaging" },
+    { id: "com.instagram.android",    name: "Instagram",                    category: "Social" },
+    { id: "com.instagram.barcelona",  name: "Threads",                      category: "Social" },
+    { id: "com.whatsapp",             name: "WhatsApp",                     category: "Messaging" },
+    { id: "com.whatsapp.w4b",         name: "WhatsApp Business",            category: "Messaging" },
+    { id: "org.telegram.messenger",   name: "Telegram",                     category: "Messaging" },
+    { id: "com.snapchat.android",     name: "Snapchat",                     category: "Social" },
+    { id: "com.zhiliaoapp.musically", name: "TikTok",                       category: "Social" },
+    { id: "com.twitter.android",      name: "X (Twitter)",                  category: "Social" },
+    { id: "com.linkedin.android",     name: "LinkedIn",                     category: "Professional" },
+    { id: "com.reddit.frontpage",     name: "Reddit",                       category: "Social" },
+    { id: "com.discord",              name: "Discord",                      category: "Communities" },
+    { id: "com.pinterest",            name: "Pinterest",                    category: "Social" },
+
+    { id: "com.google.android.youtube",      name: "YouTube",               category: "Video" },
+    { id: "com.google.android.apps.youtube.music", name: "YouTube Music",   category: "Music" },
+    { id: "com.google.android.apps.youtube.kids",  name: "YouTube Kids",    category: "Video" },
+    { id: "tv.twitch.android.app",          name: "Twitch",                 category: "Streaming" },
+    { id: "com.netflix.mediaclient",        name: "Netflix",                category: "Streaming" },
+    { id: "com.amazon.avod.thirdpartyclient", name: "Prime Video",          category: "Streaming" },
+    { id: "com.spotify.music",              name: "Spotify",                category: "Music" },
+
+    { id: "org.thoughtcrime.securesms", name: "Signal",                     category: "Messaging" },
+    { id: "com.viber.voip",             name: "Viber",                      category: "Messaging" },
+    { id: "com.tencent.mm",             name: "WeChat",                     category: "Messaging" },
+    { id: "jp.naver.line.android",      name: "LINE",                       category: "Messaging" }
+  ];
+
+  (function setupAppAutocomplete() {
+    const input = document.getElementById("app_id");
+    const box = document.getElementById("appSuggestions");
+    if (!input || !box) {
+      console.warn("App autocomplete: input or suggestions box not found");
+      return;
+    }
+
+    function clearSuggestions() {
+      box.innerHTML = "";
+      box.classList.add("d-none");
+    }
+
+    function renderSuggestions(matches) {
+      if (!matches.length) {
+        clearSuggestions();
+        return;
+      }
+
+      box.innerHTML = matches.map(app => `
+        <button type="button"
+                class="list-group-item list-group-item-action"
+                data-app-id="${app.id}">
+          <div class="fw-semibold">${app.name}</div>
+          <small class="text-muted">${app.id} · ${app.category}</small>
+        </button>
+      `).join("");
+
+      box.classList.remove("d-none");
+    }
+
+    function filterApps(query) {
+      const q = query.toLowerCase().trim();
+      if (!q) return [];
+      return APP_LIST.filter(app =>
+        app.name.toLowerCase().includes(q) ||
+        app.id.toLowerCase().includes(q)
+      ).slice(0, 10);
+    }
+
+    // Typing → update suggestions
+    input.addEventListener("input", (e) => {
+      const value = e.target.value;
+      const matches = filterApps(value);
+      renderSuggestions(matches);
+    });
+
+    // Use mousedown so it fires before blur hides the list
+    box.addEventListener("mousedown", (e) => {
+      const item = e.target.closest("[data-app-id]");
+      console.log("Suggestion mousedown target:", e.target, "closest item:", item);
+      if (!item) return;
+
+      const appId = item.getAttribute("data-app-id");
+      console.log("Selected appId:", appId);
+      input.value = appId;       // fill the field
+      clearSuggestions();        // hide dropdown
+      e.preventDefault();        // avoid stealing focus weirdly
+    });
+
+    // Hide on Escape
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") clearSuggestions();
+    });
+
+    // Optional: show some defaults on focus
+    input.addEventListener("focus", () => {
+      if (!input.value.trim()) {
+        renderSuggestions(APP_LIST.slice(0, 8));
+      }
+    });
+  })();
+</script>
+
+
 
 
 </body>
